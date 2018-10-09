@@ -9,23 +9,24 @@ public class HdrDiffTest {
 
     public static void main(String[] args) {
         Histogram h = new Histogram(TimeUnit.MINUTES.toNanos(1), 2);
+        Histogram prev = new Histogram(h); // does not duplicate counts, but only range settings
 
-        record60secs(h);
+        // three diffs
 
-        Histogram prev = h.copy();
+        for(int i = 0; i < 3; i++){
+            record60secs(h);
 
-        // report(prev);
+            Histogram diff = h.copy();
+            diff.subtract(prev);
 
-        record60secs(h);
+            System.out.println("Agg:");
+            report(h);
 
-        Histogram now = h.copy();
+            System.out.println("Diff:");
+            report(diff);
 
-        // the histogram with higher count should be subtracted by the lower count
-        // prev.subtract(now) would throw
-        now.subtract(prev);
-
-        report(h);
-        report(now);
+            prev = h.copy();
+        }
 
     }
 

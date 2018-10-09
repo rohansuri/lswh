@@ -13,7 +13,7 @@ import java.util.stream.LongStream;
 
 // http://psy-lob-saw.blogspot.com/2015/02/hdrhistogram-better-latency-capture.html
 
-public class HdrTestOut {
+public class HdrUnderstandingStorageTest {
     private static final long minute = TimeUnit.MINUTES.toNanos(1);
     private static final long second = TimeUnit.SECONDS.toNanos(1);
     private static final long millis = TimeUnit.MILLISECONDS.toNanos(1);
