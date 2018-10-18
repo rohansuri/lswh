@@ -1,0 +1,17 @@
+Show a time server/date server/echo example, which sleeps for a while and replies
+(sleep demonstrating the i/o)
+
+And show scaling the web server by using simple java i/o (a thread per socket, or maybe using the thread pool and queued up i/o)
+
+NIO Channels and Selectors based (request handling in a thread pool for those that are ready)
+
+Finally NIO 2 based on Completion Handlers
+
+Show stats that prove the scale.
+
+
+Pick examples from Book "Pro Java NIO 2"
+
+https://news.ycombinator.com/item?id=2786643
+"For comparison, it's trivial for any skilled programmer to use NIO to get up 100k+ connections without any real CPU usage."
+Let's do it?
