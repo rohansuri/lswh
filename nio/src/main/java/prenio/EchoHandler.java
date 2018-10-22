@@ -22,6 +22,7 @@ public class EchoHandler implements Runnable {
 
     @Override
     public void run() {
+        logger.info("Running EchoHandler for socket {}", socket.getRemoteSocketAddress());
         // isr/osr converts a byte stream to character stream
         // we expect echo messages in string (default charset)
 
@@ -33,16 +34,26 @@ public class EchoHandler implements Runnable {
         // state management has to be done in the app itself! by using read/write
         */
 
+        // closing reader/writer would chain the closes to ultimately close the socket too
         try(BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()))){
-            // ^^ does try with resources close all of the above resources in case of an exception?
-            String read = reader.readLine();
-            if(read != null){ // else EOS
+
+            while(true){
+                String read = reader.readLine();
+                if(read == null){ // EOS
+                    break;
+                }
+
+                logger.info("Server received \"{}\", will echo it back", read);
+
                 writer.write(read);
+                writer.flush(); // flush anything buffered immediately
             }
         }
         catch (IOException e){
-            logger.error("Closing socket {} because of", socket.getRemoteSocketAddress(), e);
+            // either read/write failed
+            // or maybe the close failed
+            logger.error("", e);
         }
     }
 }

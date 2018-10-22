@@ -1,0 +1,14 @@
+generate load:
+
+for i in $(seq 1 100); do nc localhost 9999 & done
+
+for i in $(seq 1 100); do kill %$i; done
+
+lesson:
+even though none of those 100 connections are "active" -- meaning no interaction is being done there,
+we still put 100 threads from our pool to use and stay blocked
+
+what'd be efficient is to attempt to read only when we know something surely is there!
+
+answer: select(), poll(), epoll()
+(Hello to Java NIO that utilises these primitives)

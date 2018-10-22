@@ -14,6 +14,7 @@ public class StartServer {
         try {
             Server server = new Server(Integer.parseInt(args[0]));
             server.start();
+            Runtime.getRuntime().addShutdownHook(new Thread(server::close));
         }
         catch (IOException e){
             logger.error("Couldn't start server because of", e);
