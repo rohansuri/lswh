@@ -44,7 +44,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 // Sorted set backed by a linked list.
 // TODO: make it generic. Main question is about the sentinel.
-public class FineList {
+public class FineList implements SortedList {
 
     class Node {
         Node next;
@@ -71,7 +71,7 @@ public class FineList {
     }
 
     // TODO: problem, since we're already using sentinels, we'll reject max value!
-    boolean add(int item) {
+    public boolean add(int item) {
         Node pred = head;
         pred.lock.lock();
         Node curr = pred.next; // An example of why sentinels are helpful. No need to check if head is null and
@@ -101,7 +101,7 @@ public class FineList {
         }
     }
 
-    boolean contains(int item) {
+    public boolean contains(int item) {
         Node pred = head;
         pred.lock.lock();
         Node curr = pred.next;
@@ -120,7 +120,7 @@ public class FineList {
         }
     }
 
-    boolean remove(int item) {
+    public boolean remove(int item) {
         Node pred = head;
         pred.lock.lock();
         Node curr = pred.next;

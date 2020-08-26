@@ -2,18 +2,29 @@ package taomp.ch9;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
-public class FineListTest {
+@RunWith(Parameterized.class)
+public class SortedListTest {
+
+    @Parameterized.Parameters
+    public static Object[] data() {
+        return new Object[] { new FineList(), new OptimisticList() };
+    }
+
+    @Parameterized.Parameter
+    public SortedList l;
+
 
     // TODO: this will fail because we use integer valued sentinels. We should use special references.
     @Test
     public void testMinMax() {
-        FineList l = new FineList();
         Assert.assertTrue(l.add(Integer.MAX_VALUE));
     }
 
@@ -25,11 +36,11 @@ public class FineListTest {
         // Adjust % of deletes to writes.
         double deleteRatio = 0.5;
 
-        int nWriters = 100000;
+        int nWriters = 1000;
 
         ExecutorService service = Executors.newFixedThreadPool(1000); // more threads for more interleaving.
         final CountDownLatch latch = new CountDownLatch(nWriters);
-        FineList l = new FineList();
+
         for (int i = 0; i < nWriters; i++) {
             service.submit(() -> {
                 try {
@@ -58,7 +69,7 @@ public class FineListTest {
         }
         latch.await();
         for (Map.Entry<Integer, Object> e : m.entrySet()) {
-            Assert.assertTrue(l.contains(e.getKey()));
+            Assert.assertTrue("SortedList is missing key = " + e.getKey(), l.contains(e.getKey()));
         }
     }
 }
