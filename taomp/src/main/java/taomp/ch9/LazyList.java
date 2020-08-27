@@ -7,6 +7,10 @@ import java.util.concurrent.locks.ReentrantLock;
 /*
     Aim: to avoid retraversing the list in absence of contention (vs OptimisticList).
     Also make contains wait-free i.e all concurrent calls to it will complete in a finite number of steps.
+    Note this wait-free is possible only if the list can have a finite number of elements in the possible
+    object space. For example for integers there's a valid min, max.
+    So if this queue is for a string, will the algorithm not be wait-free?
+    Since maybe concurrent adders keep adding new and new elements that sort at the end?
 
     The main improvement we want to make to OptimisticList is that it traverses the list twice,
     even in absence of contention to check the reachability of pred from head.
@@ -31,7 +35,7 @@ import java.util.concurrent.locks.ReentrantLock;
     So it is safest to simply start from head again.
 
     Do we still need the per node lock?
-    I think yes. Since when add is checking if pred is marked or curr is marked,
+    Yes. Since when add is checking if pred is marked or curr is marked,
     in between these two checks again we don't want any deletes to happen.
     Lets say after checking pred isn't marked, we're checking curr isn't marked.
     But meanwhile pred gets deleted, then we'd insert a new node in between pred and curr
@@ -40,72 +44,111 @@ import java.util.concurrent.locks.ReentrantLock;
 public class LazyList implements SortedList {
 
     class Node {
-        AtomicMarkableReference<Node> next;
+        Node next;
         int value;
         Lock lock;
+        boolean marked;
 
-        Node(AtomicMarkableReference<Node> next, int value) {
+        Node(Node next, int value) {
             this.value = value;
             this.next = next;
             lock = new ReentrantLock();
         }
     }
 
-    AtomicMarkableReference<Node> head;
+    Node head;
 
     LazyList() {
-        head = new AtomicMarkableReference<>(new Node(null, Integer.MIN_VALUE), false);
-        head.getReference().next = new AtomicMarkableReference<>(new Node(null, Integer.MAX_VALUE), false);
+        head = new Node(null, Integer.MIN_VALUE);
+        head.next = new Node(null, Integer.MAX_VALUE);
     }
 
     // This is the big win! After obtaining the locks on pred, curr we know they can't be removed.
     // So all add needs to check is whether these references have been removed from the list.
     // Which now it can simply check using the marked flag. It is delete's responsibility
     // to first mark the nodes it wants to remove and only then remove it.
-    boolean validate(AtomicMarkableReference<Node> pred, AtomicMarkableReference<Node> curr) {
-        return !pred.isMarked() && !curr.isMarked() && pred.getReference().next == curr;
+    boolean validate(Node pred, Node curr) {
+        return !pred.marked && !curr.marked && pred.next == curr;
     }
 
     @Override
     public boolean add(int item) {
         while (true) {
-            AtomicMarkableReference<Node> pred = head;
-            AtomicMarkableReference<Node> curr = pred.getReference().next;
-            while (curr.getReference().value < item) {
+            Node pred = head;
+            Node curr = pred.next;
+            while (curr.value < item) {
                 pred = curr;
-                curr = curr.getReference().next;
+                curr = curr.next;
             }
             try {
-                pred.getReference().lock.lock();
-                curr.getReference().lock.lock();
+                pred.lock.lock();
+                curr.lock.lock();
+                // In case the node we found is removed, after the locks
+                // we'd have a happens before on pred, curr.
+                // So now we can safely check the marked values and know
+                // whether the found node is removed or not.
+                // If the found node is removed we start our traversal again
+                // and since it is removed, this time the marked node won't
+                // be reachable since it must've been unlinked.
+                // Therefore an add for a removed item will succeed.
                 if (validate(pred, curr)) {
-                    if (curr.getReference().value == item) {
+                    if (curr.value == item) {
                         return false;
                     }
-                    AtomicMarkableReference<Node> newNode = new AtomicMarkableReference<>(new Node(curr, item), false);
-                    pred.getReference().next = newNode;
+                    Node newNode = new Node(curr, item);
+                    pred.next = newNode;
                     return true;
                 }
             } finally {
-                curr.getReference().lock.unlock();
-                pred.getReference().lock.unlock();
+                curr.lock.unlock();
+                pred.lock.unlock();
             }
         }
     }
 
     @Override
     public boolean remove(int item) {
-        return false;
+        while (true) {
+            Node pred = head;
+            Node curr = pred.next;
+            while (curr.value < item) {
+                pred = curr;
+                curr = curr.next;
+            }
+            try {
+                pred.lock.lock();
+                curr.lock.lock();
+                // Q: What happens if there's a node that is already removed?
+                // And we try to remove it again?
+                // If any remover finds it, it'll find it as marked already and so
+                // will restart the traversal and next traversal won't find it.
+                // Since the node must have been unlinked.
+                if (validate(pred, curr)) {
+                    if (curr.value != item) {
+                        return false;
+                    }
+                    curr.marked = true;
+                    pred.next = curr.next;
+                    return true;
+                }
+            } finally {
+                curr.lock.unlock();
+                pred.lock.unlock();
+            }
+        }
     }
 
     @Override
     public boolean contains(int item) {
-        AtomicMarkableReference<Node> pred = head;
-        AtomicMarkableReference<Node> curr = pred.getReference().next;
-        while (curr.getReference().value < item) {
-            pred = curr;
-            curr = curr.getReference().next;
+        // Q: There's no happens before? So even if I add one node, contains might never see the node?
+        // There is no memory barrier?
+        // From a theory perspective this is fine, since we'll "linearize" all such unsuccessful contains calls before
+        // the write. But what if some threads see the contains as successful and hence linearize it?
+        // What about other threads not being able to see it?
+        Node curr = head;
+        while (curr.value < item) {
+            curr = curr.next;
         }
-        return validate(pred, curr) && curr.getReference().value == item;
+        return !curr.marked && curr.value == item;
     }
 }
