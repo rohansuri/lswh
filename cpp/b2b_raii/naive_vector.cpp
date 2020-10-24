@@ -24,12 +24,9 @@ public:
 		std::copy(v.m, v.m+v.capacity_, m);
 	}
 
-	Naive_Vector& operator=(const Naive_Vector& v){
-		// why can't we just call the copy ctor here?
-		// we can, that's the copy-and-swap idiom.
+	Naive_Vector& operator=(Naive_Vector v){ // copy received.
 		std::cout << "copy assignment invoked" << std::endl;
-		Naive_Vector v2(v); // copy ctor.
-		this->swap(v2); // memberwise swap, not std::swap, since that itself would invoke copy assignment.
+		this->swap(v); // memberwise swap, not std::swap, since that itself would invoke copy assignment.
 		return *this;
 	} // dtor gets called on v2. releasing the memory held by old *this.
 
