@@ -26,16 +26,17 @@ public:
 
 	Naive_Vector& operator=(Naive_Vector v){ // copy received.
 		std::cout << "copy assignment invoked" << std::endl;
-		this->swap(v); // memberwise swap, not std::swap, since that itself would invoke copy assignment.
+		swap(*this, v);
 		return *this;
 	} // dtor gets called on v2. releasing the memory held by old *this.
 
 
-	void swap(Naive_Vector& v) {
+	// Friend to enable ADL.
+	friend void swap(Naive_Vector& v1, Naive_Vector& v2) {
 		// Member-wise swap.
-		std::swap(m, v.m);
-		std::swap(capacity_, v.capacity_);
-		std::swap(size_, v.size_);
+		std::swap(v1.m, v2.m);
+		std::swap(v1.capacity_, v2.capacity_);
+		std::swap(v1.size_, v2.size_);
 	}
 
 
