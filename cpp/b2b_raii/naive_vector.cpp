@@ -1,4 +1,5 @@
 #include<iostream>
+#include<algorithm>
 #include<stdexcept>
 
 class Naive_Vector {
@@ -16,10 +17,28 @@ public:
 	// infact compiler gives an error:
 	// error: copy constructor must pass its first argument by reference
 	Naive_Vector(const Naive_Vector& v) {
+		std::cout << "copy ctor invoked " << std::endl;
 		size_ = v.size_;
 		capacity_ = v.capacity_;
 		m = new int[v.capacity_];
 		std::copy(v.m, v.m+v.capacity_, m);
+	}
+
+	Naive_Vector& operator=(const Naive_Vector& v){
+		// why can't we just call the copy ctor here?
+		// we can, that's the copy-and-swap idiom.
+		std::cout << "copy assignment invoked" << std::endl;
+		Naive_Vector v2(v); // copy ctor.
+		this->swap(v2); // memberwise swap, not std::swap, since that itself would invoke copy assignment.
+		return *this;
+	} // dtor gets called on v2. releasing the memory held by old *this.
+
+
+	void swap(Naive_Vector& v) {
+		// Member-wise swap.
+		std::swap(m, v.m);
+		std::swap(capacity_, v.capacity_);
+		std::swap(size_, v.size_);
 	}
 
 
@@ -92,4 +111,10 @@ int main() {
 	copy(v);
 	fill(v);
 	check(v);	
+	
+	std::cout << "invoking copy ctor " << std::endl;
+	Naive_Vector v2 = v; // copy ctor
+	std::cout << "invoking copy assignment" << std::endl;
+	v = v2; // copy assignment
+	check(v);
 }
