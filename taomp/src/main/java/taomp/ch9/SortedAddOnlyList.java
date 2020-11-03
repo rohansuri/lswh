@@ -6,6 +6,18 @@ import java.util.concurrent.atomic.AtomicReference;
     Helps to think if a CAS construct is sufficient for only one kind of actors.
     Also some skiplist use cases only allow adds e.g. in memtables in which deletes are also
     inserts.
+
+    What happens if adjacent nodes are concurrently added?
+    So we have 1 -> 5.
+    And concurrently we add 2, 3, 4?
+    Since all fall in the same range, everyone will contend on the range that they "split".
+    Lets say first we add 3.
+    2 and 4 will restart loop and find separate ranges 1, 3 and 3, 5 so they won't contend.
+
+    Lets say if 4 succeeds.
+    Then 2, 3 still fall in the same range i.e. 1 and 4.
+    They contend on 1 again.
+    So CASing on pred alone works.
  */
 public class SortedAddOnlyList {
     static class Node {
