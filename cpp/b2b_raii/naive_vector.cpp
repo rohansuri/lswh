@@ -24,8 +24,19 @@ public:
 		std::copy(v.m, v.m+v.capacity_, m);
 	}
 
-	Naive_Vector& operator=(Naive_Vector v){ // copy received.
-		std::cout << "copy assignment invoked" << std::endl;
+	Naive_Vector(Naive_Vector&& v){
+		std::cout << "move ctor invoked " << std::endl;
+		swap(*this, v);
+	}
+
+	// Note how this handles both copy assignment as well as move assignment.
+	// We leave it to the caller to decide how will they construct v.
+	// They can either copy construct or move construct it.
+	// For example a = b will copy construct.
+	// a = b + c will move construct.
+	// https://stackoverflow.com/questions/3106110/what-is-move-semantics
+	Naive_Vector& operator=(Naive_Vector v){ 
+		std::cout << "assignment invoked" << std::endl;
 		swap(*this, v);
 		return *this;
 	} // dtor gets called on v2. releasing the memory held by old *this.
@@ -41,6 +52,7 @@ public:
 
 
 	~Naive_Vector(){
+		std::cout << "dtor called" << std::endl;
 		delete [] m;
 	}
 
@@ -101,6 +113,13 @@ void check(const Naive_Vector& v) {
 	std::cout << "Test passes " << std::endl;
 }
 
+Naive_Vector fill() {
+	Naive_Vector v(0);
+	fill(v);
+	std::cout << "rvo move ctor should be called" << std::endl;
+	return v;
+}
+
 int main() {
 
 	Naive_Vector v(0);
@@ -115,4 +134,6 @@ int main() {
 	std::cout << "invoking copy assignment" << std::endl;
 	v = v2; // copy assignment
 	check(v);
+	
+	v = fill(); // returned object moved into v. v's dtor should be called.
 }
